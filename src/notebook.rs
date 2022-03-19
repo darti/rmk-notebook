@@ -1,5 +1,5 @@
 use std::{
-    fs::{self, File},
+    fs::File,
     io::{BufRead, BufReader},
     path::PathBuf,
     time::SystemTime,
@@ -9,7 +9,10 @@ use log::info;
 use serde::Deserialize;
 use serde_with::serde_as;
 
-use crate::{rm::LinesData, Error, Result};
+use crate::{
+    rm::{LinesData, Page},
+    Result,
+};
 
 #[serde_as]
 #[derive(Deserialize, Debug, Clone)]
@@ -64,20 +67,22 @@ pub fn read_pagedata(root: &PathBuf, id: &str) -> Result<Vec<String>> {
     Ok(pagedata)
 }
 
-pub fn read_rm(root: &PathBuf, id: &str, pages: &Vec<String>) -> Result<()> {
+pub fn read_rm(root: &PathBuf, id: &str, pages: &Vec<String>) -> Result<Vec<Page>> {
     let path = root.join(id).join("*.rm");
 
-    for page in pages.iter() {
-        let rm_file = root.join(id).join(format!("{}.rm", page));
+    let mut nb_pages = Vec::with_capacity(pages.len());
 
-        info!("{}", rm_file.display());
-        let mut file = File::open(rm_file.clone())?;
-        let lines_data = LinesData::parse(&mut file).unwrap();
+    for page in pages {
+        let path = path.with_file_name(format!("{}.rm", page));
+        info!("Reading {}", path.display());
 
-        // lines_are_rusty::render_pdf(output, &lines_data.pages).unwrap();
+        let mut file = File::open(path)?;
+        let mut lines_data = LinesData::parse(&mut file)?;
+
+        nb_pages.append(&mut lines_data.pages);
     }
 
-    Ok(())
+    Ok(nb_pages)
 }
 
 #[cfg(test)]

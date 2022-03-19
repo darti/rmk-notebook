@@ -10,22 +10,28 @@ pub enum Error {
     #[error("invalid metadata: {0}")]
     InvalidFile(#[from] io::Error),
 
+    #[error("failed to write file: {0}")]
+    WriteError(String),
+
     #[error("invalid path: {0}")]
     InvalidPath(String),
 
     #[error(transparent)]
     InvalidMetadata(#[from] serde_json::Error),
 
-    #[error("Unsupported version string: {0}")]
+    #[error(transparent)]
+    PdfError(#[from] printpdf::Error),
+
+    #[error("unsupported version string: {0}")]
     UnsupportedVersion(String),
 
-    #[error("Unknown brush type: {0}")]
+    #[error("unknown brush type: {0}")]
     UnknownBrush(i32),
 
-    #[error("Unknown color: {0}")]
+    #[error("unknown color: {0}")]
     UnknownColor(i32),
 
-    #[error("Invalid Segment index: {0}")]
+    #[error("invalid Segment index: {0}")]
     InvalidSegmentIndex(usize),
 }
 
