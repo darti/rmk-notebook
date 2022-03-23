@@ -1,5 +1,7 @@
+use std::fs;
 use std::fs::File;
 use std::io::Write;
+use std::path;
 use std::path::PathBuf;
 
 use rmk_notebook::read_notebook;
@@ -19,6 +21,7 @@ fn main() -> Result<()> {
 
     let data = nb.render()?;
 
+    fs::create_dir_all(output.parent().unwrap())?;
     let mut file = File::create(output.clone())?;
 
     file.write_all(&data)

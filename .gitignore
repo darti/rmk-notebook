@@ -2,3 +2,5 @@
 *.code-workspace
 
 samples/out
+
+.DS_Store
