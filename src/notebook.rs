@@ -95,7 +95,7 @@ mod tests {
         let root = PathBuf::from("samples");
         let id = "0d9af7de-39f8-4251-8500-330eec0d00f0";
 
-        let metadata = super::read_metadata(&root, id)?;
+        let _metadata = super::read_metadata(&root, id)?;
 
         Ok(())
     }
