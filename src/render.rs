@@ -1,10 +1,11 @@
-use std::io::Write;
+use std::{cmp::min, io::Write};
 
 use log::info;
 use lopdf::{
     content::{Content, Operation},
     dictionary, Dictionary, Document, Object, Stream,
 };
+use serde::de::IntoDeserializer;
 
 use crate::{
     rm::{Line, Point},
@@ -13,11 +14,35 @@ use crate::{
 
 impl Notebook {
     pub fn render<W: Write>(&self, target: &mut W) -> Result<()> {
+        // https://blog.idrsolutions.com/2010/11/grow-your-own-pdf-file-–-part-5-path-objects/
+        let mm_to_pt = |mm: f64| mm * 72_f64 / 25.4_f64;
+
         let paper_width = 210.;
         let paper_height = 297.;
 
-        let screen_width = 1404.;
-        let screen_height = 1872.;
+        let remarkable_width = 1404.;
+        let remarkable_height = 1872.;
+
+        let pdf_width = mm_to_pt(paper_width);
+        let pdf_height = mm_to_pt(paper_height);
+
+        let remarkable_pdf_ratio =
+            (pdf_width / remarkable_width).min(pdf_height / remarkable_height);
+
+        // 1 pt = 1/72 inch
+        // 1 inch = 2.54 cm
+
+        let media_box: Object =
+            vec![0.into(), 0.into(), pdf_width.into(), pdf_height.into()].into();
+
+        let transform = vec![
+            Object::Real(remarkable_pdf_ratio),
+            Object::Real(0.0),
+            Object::Real(0.0),
+            Object::Real(-remarkable_pdf_ratio),
+            Object::Real(0.0),
+            Object::Real(842.0),
+        ];
 
         let mut doc = Document::with_version("1.5");
         let pages_id = doc.new_object_id();
@@ -32,57 +57,39 @@ impl Notebook {
                 "F1" => font_id,
             },
         });
-        let content = Content {
-            operations: vec![
-                Operation::new("BT", vec![]),
-                Operation::new("Tf", vec!["F1".into(), 48.into()]),
-                Operation::new("Td", vec![100.into(), 600.into()]),
-                Operation::new("Tj", vec![Object::string_literal("Hello World!")]),
-                Operation::new("ET", vec![]),
-            ],
-        };
-
-        // [ a b tx]
-        // [ c d ty]
-        // [ 0 0 1 ]
-
-        // [a b c d tx ty]
-
-        let screen_paper_ratio = paper_width / screen_width;
 
         let mut page_ids: Vec<Object> = Vec::with_capacity(self.pages.len());
 
-        // 595 * 842 points. 1 pt = 1 / 72 inch, which means that the page is 21 * 29 cm large  = A4 size
-        let media_box: Object = vec![0.into(), 0.into(), 595.into(), 842.into()].into();
-
         for page in &self.pages {
-            // current_layer.add_operation(CurTransMat::Translate(Pt(0.), Pt(screen_height)));
-            // current_layer.add_operation(CurTransMat::Scale(1.0, -1.0));
-
-            // let content = Content { operations: vec![] };
-            let content_id = doc.add_object(Stream::new(dictionary! {}, content.encode().unwrap()));
-
-            let page_dict = dictionary! {
-                "Type" => "Page",
-                "Parent" => pages_id,
-                "Contents" => content_id,
-            };
-
-            page_ids.push(doc.add_object(page_dict).into());
+            let mut content = Content { operations: vec![] };
+            content
+                .operations
+                .push(Operation::new("cm", transform.clone()));
 
             for layer in &page.layers {
                 for line in &layer.lines {
-                    // self.render_line(line, &current_layer);
+                    self.render_line(line, &mut content.operations);
                 }
             }
+
+            let content_id = doc.add_object(Stream::new(dictionary! {}, content.encode().unwrap()));
+
+            page_ids.push(
+                doc.add_object(dictionary! {
+                    "Type" => "Page",
+                    "Parent" => pages_id,
+                    "Contents" => content_id,
+                })
+                .into(),
+            );
         }
 
         let pages = dictionary! {
             "Type" => "Pages",
             "Kids" => Object::Array(page_ids),
-            "Count" => 1,//page_ids.len() as i32,
+            "Count" => Object::Integer(self.pages.len() as i64),
             "Resources" => resources_id,
-             "MediaBox" => media_box,
+            "MediaBox" => media_box,
 
         };
 
@@ -93,25 +100,21 @@ impl Notebook {
         });
 
         doc.trailer.set("Root", catalog_id);
-        doc.compress();
+        //doc.compress();
         doc.save_to(target)?;
 
         Ok(())
     }
 
-    // fn render_line(&self, line: &Line, layer: &PdfLayerReference) {
-    //     line.points.windows(2).for_each(|points| {
-    //         let p0 = &points[0];
-    //         let p1 = &points[1];
+    fn render_line(&self, line: &Line, operations: &mut Vec<Operation>) {
+        line.points.windows(2).for_each(|points| {
+            let p0 = &points[0];
+            let p1 = &points[1];
 
-    //         let l = PdfLine {
-    //             points: vec![p0.into(), p1.into()],
-    //             is_closed: true,
-    //             has_fill: true,
-    //             has_stroke: true,
-    //             is_clipping_path: false,
-    //         };
-    //         layer.add_shape(l);
-    //     });
-    // }
+            operations.push(Operation::new("m", vec![p0.x.into(), p0.y.into()]));
+            operations.push(Operation::new("l", vec![p1.x.into(), p1.y.into()]));
+            operations.push(Operation::new("h", vec![]));
+            operations.push(Operation::new("S", vec![]));
+        });
+    }
 }
