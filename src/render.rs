@@ -15,6 +15,9 @@ use crate::{
 impl Notebook {
     pub fn render<W: Write>(&self, target: &mut W) -> Result<()> {
         // https://blog.idrsolutions.com/2010/11/grow-your-own-pdf-file-–-part-5-path-objects/
+
+        // 1 pt = 1/72 inch
+        // 1 inch = 2.54 cm
         let mm_to_pt = |mm: f64| mm * 72_f64 / 25.4_f64;
 
         let paper_width = 210.;
@@ -29,9 +32,6 @@ impl Notebook {
         let remarkable_pdf_ratio =
             (pdf_width / remarkable_width).min(pdf_height / remarkable_height);
 
-        // 1 pt = 1/72 inch
-        // 1 inch = 2.54 cm
-
         let media_box: Object =
             vec![0.into(), 0.into(), pdf_width.into(), pdf_height.into()].into();
 
@@ -41,22 +41,11 @@ impl Notebook {
             Object::Real(0.0),
             Object::Real(-remarkable_pdf_ratio),
             Object::Real(0.0),
-            Object::Real(842.0),
+            Object::Real(pdf_height),
         ];
 
         let mut doc = Document::with_version("1.5");
         let pages_id = doc.new_object_id();
-
-        let font_id = doc.add_object(dictionary! {
-            "Type" => "Font",
-            "Subtype" => "Type1",
-            "BaseFont" => "Courier",
-        });
-        let resources_id = doc.add_object(dictionary! {
-            "Font" => dictionary! {
-                "F1" => font_id,
-            },
-        });
 
         let mut page_ids: Vec<Object> = Vec::with_capacity(self.pages.len());
 
@@ -84,6 +73,18 @@ impl Notebook {
             );
         }
 
+        let font_id = doc.add_object(dictionary! {
+            "Type" => "Font",
+            "Subtype" => "Type1",
+            "BaseFont" => "Courier",
+        });
+
+        let resources_id = doc.add_object(dictionary! {
+            "Font" => dictionary! {
+                "F1" => font_id,
+            },
+        });
+
         let pages = dictionary! {
             "Type" => "Pages",
             "Kids" => Object::Array(page_ids),
@@ -100,21 +101,25 @@ impl Notebook {
         });
 
         doc.trailer.set("Root", catalog_id);
-        //doc.compress();
+        // doc.compress();
         doc.save_to(target)?;
 
         Ok(())
     }
 
-    fn render_line(&self, line: &Line, operations: &mut Vec<Operation>) {
-        line.points.windows(2).for_each(|points| {
-            let p0 = &points[0];
-            let p1 = &points[1];
+    fn render_line(&self, line: &Line, operations: &mut Vec<Operation>) -> Result<()> {
+        let mut points = line.points.iter();
+        let origin = points.next().unwrap();
 
-            operations.push(Operation::new("m", vec![p0.x.into(), p0.y.into()]));
-            operations.push(Operation::new("l", vec![p1.x.into(), p1.y.into()]));
-            operations.push(Operation::new("h", vec![]));
-            operations.push(Operation::new("S", vec![]));
+        operations.push(Operation::new("m", vec![origin.x.into(), origin.y.into()]));
+
+        points.for_each(|pt| {
+            operations.push(Operation::new("l", vec![pt.x.into(), pt.y.into()]));
         });
+
+        // operations.push(Operation::new("h", vec![]));
+        operations.push(Operation::new("S", vec![]));
+
+        Ok(())
     }
 }
