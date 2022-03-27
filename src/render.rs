@@ -1,16 +1,11 @@
-use std::{cmp::min, io::Write};
+use std::io::Write;
 
-use log::info;
 use lopdf::{
     content::{Content, Operation},
-    dictionary, Dictionary, Document, Object, Stream,
+    dictionary, Document, Object, Stream,
 };
-use serde::de::IntoDeserializer;
 
-use crate::{
-    rm::{Line, Point},
-    Notebook, Result,
-};
+use crate::{rm::Line, Notebook, Result};
 
 impl Notebook {
     pub fn render<W: Write>(&self, target: &mut W) -> Result<()> {
