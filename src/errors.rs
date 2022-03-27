@@ -19,9 +19,6 @@ pub enum Error {
     #[error(transparent)]
     InvalidMetadata(#[from] serde_json::Error),
 
-    #[error(transparent)]
-    PdfError(#[from] printpdf::Error),
-
     #[error("unsupported version string: {0}")]
     UnsupportedVersion(String),
 

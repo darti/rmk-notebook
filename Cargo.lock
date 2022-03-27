@@ -271,15 +271,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1aab8fc367588b89dcee83ab0fd66b72b50b72fa1904d7095045ace2b0c81c35"
 
 [[package]]
-name = "js-sys"
-version = "0.3.56"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a38fc24e30fd564ce974c02bf1d337caddff65be6cc4735a1f7eab22a7440f04"
-dependencies = [
- "wasm-bindgen",
-]
-
-[[package]]
 name = "lazy_static"
 version = "1.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -361,15 +352,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "owned_ttf_parser"
-version = "0.12.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "60ac8dda2e5cc09bf6480e3b3feff9783db251710c922ae9369a429c51efdeb0"
-dependencies = [
- "ttf-parser",
-]
-
-[[package]]
 name = "pom"
 version = "3.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -383,18 +365,6 @@ checksum = "926d36b9553851b8b0005f1275891b392ee4d2d833852c417ed025477350fb9d"
 dependencies = [
  "env_logger",
  "log",
-]
-
-[[package]]
-name = "printpdf"
-version = "0.5.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "382011eb582243f0c84620293a50d6a2d142494ed156463511ab5c44580e60fd"
-dependencies = [
- "js-sys",
- "lopdf",
- "owned_ttf_parser",
- "time 0.2.27",
 ]
 
 [[package]]
@@ -453,7 +423,6 @@ dependencies = [
  "log",
  "lopdf",
  "pretty_env_logger",
- "printpdf",
  "serde",
  "serde_json",
  "serde_with",
@@ -717,12 +686,6 @@ dependencies = [
  "standback",
  "syn",
 ]
-
-[[package]]
-name = "ttf-parser"
-version = "0.12.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7ae2f58a822f08abdaf668897e96a5656fe72f5a9ce66422423e8849384872e6"
 
 [[package]]
 name = "unicode-xid"
